@@ -10,12 +10,12 @@ Protobuf-MSBuild-For-Unity/
 ├─ README.md
 ├─ Runtime/
 │  ├─ Plugins/            ← 构建后会自动复制 DLL 到这里
-│  └─ TTT.Protobuf.Runtime.asmdef
+│  └─ ProtobufMSBuildForUnity.Protobuf.Runtime.asmdef
 ├─ Samples~/
 │  └─ SimpleUsage/        ← Unity 示例脚本
 └─ Dotnet/
    └─ ProtobufMSBuild/
-      ├─ TTT.Protobuf.Messages.csproj
+      ├─ ProtobufMSBuildForUnity.Protobuf.Messages.csproj
       └─ Protos/
          └─ player.proto
 ```
@@ -29,16 +29,16 @@ Protobuf-MSBuild-For-Unity/
 - 系统需安装 .NET SDK（建议 6.0+/8.0）。
 - 在包根目录下执行：
   ```powershell
-  dotnet build .\Dotnet\ProtobufMSBuild\TTT.Protobuf.Messages.csproj -c Release
+  dotnet build .\Dotnet\ProtobufMSBuild\ProtobufMSBuildForUnity.Protobuf.Messages.csproj -c Release
   ```
 - 构建成功后，`Runtime/Plugins` 会出现：
-  - `TTT.Protobuf.Messages.dll`（你生成的消息库）
+  - `ProtobufMSBuildForUnity.Protobuf.Messages.dll`（你生成的消息库）
   - `Google.Protobuf.dll`（运行时依赖）
 
 3) 在 Unity 中使用：
 - 可在 Samples 中导入 `SimpleUsage` 示例，或在自己的脚本中直接：
   ```csharp
-  using TTT.Protobuf.Messages;
+  using ProtobufMSBuildForUnity.Protobuf.Messages;
   using Google.Protobuf;
   ```
   即可访问 `player.proto` 生成的 `Player` 类型。
@@ -46,7 +46,7 @@ Protobuf-MSBuild-For-Unity/
 ## 开发流程（更新 .proto）
 
 1. 在 `Dotnet/ProtobufMSBuild/Protos` 中添加或修改你的 `.proto` 文件。
-2. 确保每个 proto 设置 `option csharp_namespace = "TTT.Protobuf.Messages";`（或你自定义的命名空间）。
+2. 确保每个 proto 设置 `option csharp_namespace = "ProtobufMSBuildForUnity.Protobuf.Messages";`（或你自定义的命名空间）。
 3. 运行构建命令（见上文），生成并复制新的 DLL 到 `Runtime/Plugins`。
 4. 切回 Unity，等待脚本编译完成即可使用新消息类型。
 
@@ -62,9 +62,9 @@ Protobuf-MSBuild-For-Unity/
   - 确认你已构建 .NET 项目且 DLL 已复制到 `Runtime/Plugins`。
   - 确认 Unity 版本支持 .NET Standard 2.0（Unity 2019+）。
 - 若想更改命名空间或程序集名称：
-  - 修改 `TTT.Protobuf.Messages.csproj` 中 `AssemblyName`/`RootNamespace`。
+  - 修改 `ProtobufMSBuildForUnity.Protobuf.Messages.csproj` 中 `AssemblyName`/`RootNamespace`。
   - 在 proto 文件里同步修改 `option csharp_namespace`。
 
 ---
-作者：TTT
+作者：WJQ
 欢迎按需调整结构与命名！

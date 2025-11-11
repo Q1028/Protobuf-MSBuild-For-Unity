@@ -14,6 +14,7 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
     {
         const string AutoBuildKey = "ProtobufMSBuild.AutoBuildEnabled";
         const string ProtoRootPrefKey = "ProtobufMSBuild.ProtoRoot";
+        const string CsOutPrefKey = "ProtobufMSBuild.CsOutDir";
         static ProtoAutoBuilder()
         {
             if (!EditorPrefs.HasKey(AutoBuildKey)) EditorPrefs.SetBool(AutoBuildKey, false);
@@ -33,7 +34,6 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
 
         static string ProtosDir()
         {
-            // Prefer user-selected proto root
             var custom = EditorPrefs.GetString(ProtoRootPrefKey, string.Empty);
             if (!string.IsNullOrEmpty(custom))
             {
@@ -50,14 +50,6 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
             var root = FindPackageRoot();
             if (string.IsNullOrEmpty(root)) return null;
             return Path.Combine(root, "Dotnet~", "ProtobufMSBuild", "ProtobufMSBuild.Protobuf.Messages.csproj");
-        }
-
-        static bool IsEmbedded()
-        {
-            var root = FindPackageRoot();
-            if (string.IsNullOrEmpty(root)) return false;
-            var projPackages = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Packages"));
-            return Path.GetFullPath(root).StartsWith(Path.GetFullPath(projPackages), StringComparison.OrdinalIgnoreCase);
         }
 
         public static bool AutoBuildEnabled
@@ -105,7 +97,24 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
             }
         }
 
-        [MenuItem("Protobuf MSBuild/Build Now")]
+        [MenuItem("Protobuf MSBuild/Set C# Output Folder...")]
+        static void SetCsOutputFolder()
+        {
+            var curr = EditorPrefs.GetString(CsOutPrefKey, string.Empty);
+            var selected = EditorUtility.OpenFolderPanel("Select Generated C# Output Folder", string.IsNullOrEmpty(curr) ? Application.dataPath : curr, "");
+            if (string.IsNullOrEmpty(selected)) return;
+            try
+            {
+                EditorPrefs.SetString(CsOutPrefKey, selected);
+                EditorUtility.DisplayDialog("Protobuf MSBuild", $"C# Output Folder set to:\n{selected}", "OK");
+            }
+            catch (Exception e)
+            {
+                UnityEngine.Debug.LogError(e);
+            }
+        }
+
+        [MenuItem("Protobuf MSBuild/Build")]
         public static void BuildNow()
         {
             var csproj = CsprojPath();
@@ -114,14 +123,20 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
                 EditorUtility.DisplayDialog("Protobuf MSBuild", "Cannot locate csproj. If the package is not embedded, embed it first.", "OK");
                 return;
             }
-            if (!IsEmbedded())
-            {
-                if (!EditorUtility.DisplayDialog("Protobuf MSBuild", "Package is not embedded. Building in cache is not supported. Embed the package first?", "OK", "Cancel"))
-                    return;
-            }
             try
             {
-                var protoRoot = ProtosDir();
+                // Require user-specified proto root and C# output folder
+                var userProtoRoot = EditorPrefs.GetString(ProtoRootPrefKey, string.Empty);
+                var csOutDir = EditorPrefs.GetString(CsOutPrefKey, string.Empty);
+                if (string.IsNullOrEmpty(userProtoRoot) || string.IsNullOrEmpty(csOutDir))
+                {
+                    EditorUtility.DisplayDialog(
+                        "Protobuf MSBuild",
+                        "Please set both the Proto Root folder and the Generated C# Output folder before building.\nMenu: Protobuf MSBuild -> Set Proto Folder... and Set C# Output Folder...",
+                        "OK");
+                    return;
+                }
+                var protoRoot = userProtoRoot;
                 var psi = new ProcessStartInfo
                 {
                     FileName = "dotnet",
@@ -136,8 +151,41 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
                 string output = p.StandardOutput.ReadToEnd();
                 string err = p.StandardError.ReadToEnd();
                 p.WaitForExit();
-                UnityEngine.Debug.Log(output);
                 if (!string.IsNullOrEmpty(err)) UnityEngine.Debug.LogWarning(err);
+                if (p.ExitCode != 0)
+                {
+                    EditorUtility.DisplayDialog("Protobuf MSBuild", "Build failed. See Console for details.", "OK");
+                    UnityEngine.Debug.LogError(output);
+                    return;
+                }
+                try
+                {
+                    var projDir = Path.GetDirectoryName(csproj);
+                    var intermediate = Path.Combine(projDir, "obj", "Release", "netstandard2.0");
+                    if (Directory.Exists(intermediate))
+                    {
+                        var protoDirLower = Path.Combine(intermediate, "protobuf");
+                        var protoDirUpper = Path.Combine(intermediate, "Protobuf");
+                        var sourceRoot = Directory.Exists(protoDirLower) ? protoDirLower : (Directory.Exists(protoDirUpper) ? protoDirUpper : intermediate);
+                        var generatedFiles = Directory.GetFiles(sourceRoot, "*.cs", SearchOption.AllDirectories).ToArray();
+                        if (generatedFiles.Length > 0)
+                        {
+                            foreach (var file in generatedFiles)
+                            {
+                                string rel = file.Substring(sourceRoot.Length).TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                                var dest = Path.Combine(csOutDir, rel);
+                                var destDir = Path.GetDirectoryName(dest);
+                                if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
+                                File.Copy(file, dest, true);
+                            }
+                            UnityEngine.Debug.Log($"Protobuf MSBuild: Copied {generatedFiles.Length} generated files to {csOutDir}");
+                        }
+                    }
+                }
+                catch (Exception copyEx)
+                {
+                    UnityEngine.Debug.LogWarning($"Copy generated C# files failed: {copyEx}");
+                }
                 AssetDatabase.Refresh();
                 EditorUtility.DisplayDialog("Protobuf MSBuild", "Build finished.", "OK");
             }
@@ -145,60 +193,6 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
             {
                 UnityEngine.Debug.LogError(e);
             }
-        }
-
-        [MenuItem("Protobuf MSBuild/Fetch Protos")]
-        public static void FetchProtos()
-        {
-            var protos = ProtosDir();
-            var root = FindPackageRoot();
-            if (string.IsNullOrEmpty(protos) || string.IsNullOrEmpty(root))
-            {
-                EditorUtility.DisplayDialog("Protobuf MSBuild", "Cannot locate package root. Embed the package first.", "OK");
-                return;
-            }
-            var cfgA = Path.Combine(root, "ProtoSources.txt");
-            var cfgB = Path.Combine(Application.dataPath, "ProtoSources.txt");
-            var cfg = File.Exists(cfgA) ? cfgA : cfgB;
-            if (!File.Exists(cfg))
-            {
-                File.WriteAllText(cfgA, "# Put http(s) URLs or local file paths to .proto files, one per line\n");
-                AssetDatabase.Refresh();
-                EditorUtility.DisplayDialog("Protobuf MSBuild", "Created ProtoSources.txt in package root.", "OK");
-                return;
-            }
-            Directory.CreateDirectory(protos);
-            foreach (var raw in File.ReadAllLines(cfg))
-            {
-                var line = raw.Trim();
-                if (string.IsNullOrEmpty(line)) continue;
-                if (line.StartsWith("#")) continue;
-                try
-                {
-                    if (line.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || line.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                    {
-                        using (var wc = new WebClient())
-                        {
-                            var fileName = Path.GetFileName(new Uri(line).AbsolutePath);
-                            if (string.IsNullOrEmpty(fileName)) fileName = Guid.NewGuid() + ".proto";
-                            var dst = Path.Combine(protos, fileName);
-                            wc.DownloadFile(line, dst);
-                        }
-                    }
-                    else
-                    {
-                        var src = Path.GetFullPath(line);
-                        var dst = Path.Combine(protos, Path.GetFileName(src));
-                        File.Copy(src, dst, true);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    UnityEngine.Debug.LogError($"Fetch failed: {line}\n{ex}");
-                }
-            }
-            AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Protobuf MSBuild", "Fetch finished.", "OK");
         }
     }
 }
