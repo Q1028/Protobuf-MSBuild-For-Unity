@@ -7,6 +7,8 @@
     <LangVersion>latest</LangVersion>
     <!-- 复制运行时依赖（如 Google.Protobuf.dll）到输出目录 -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Proto 根目录，默认指向包内的 Protos，可通过 MSBuild 参数 -p:ProtoRootDir=... 覆盖 -->
+    <ProtoRootDir>$(MSBuildProjectDirectory)\Protos</ProtoRootDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +19,13 @@
 
   <ItemGroup>
     <!-- 只生成消息类型，不生成 gRPC 服务 -->
-    <Protobuf Include="Protos\*.proto" GrpcServices="None" />
+    <Protobuf Include="$(ProtoRootDir)\**\*.proto">
+      <GrpcServices>None</GrpcServices>
+      <!-- 告诉 Grpc.Tools 将 ProtoRoot 作为 proto_path（protoc 选项），使绝对路径文件能被识别为相对该根目录的路径 -->
+      <ProtoRoot>$(ProtoRootDir)</ProtoRoot>
+      <!-- 若有需要，再附加其他 import 目录（以分号分隔） -->
+      <AdditionalImportDirs>$(ProtoRootDir)</AdditionalImportDirs>
+    </Protobuf>
   </ItemGroup>
 
   <!-- 构建后复制所有输出（含依赖）到 UPM 包 Runtime/Plugins -->
