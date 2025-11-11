@@ -33,7 +33,7 @@
     <UnityPackagePluginsDir>$(MSBuildProjectDirectory)\..\..\Runtime\Plugins</UnityPackagePluginsDir>
   </PropertyGroup>
 
-  <Target Name="CopyToUnityPackage" AfterTargets="Build">
+  <Target Name="CopyToUnityPackage" AfterTargets="Build" Condition=" '$(DisableUnityPluginCopy)' != 'true' ">
     <ItemGroup>
       <!-- 复制输出文件，但排除 BCL（例如 netstandard）避免与 Unity 自带程序集冲突。
            注意：不要整体排除 System.*，否则会丢失 Google.Protobuf 依赖的
@@ -49,6 +49,14 @@
     </ItemGroup>
     <Message Importance="high" Text="Copying built assemblies to $(UnityPackagePluginsDir)" />
     <Copy SourceFiles="@(AssembliesToCopy)" DestinationFolder="$(UnityPackagePluginsDir)" SkipUnchangedFiles="true" />
+  </Target>
+  
+  <!-- 当 DisableUnityPluginCopy=true 时，禁用复制到 Unity Plugins -->
+  <PropertyGroup>
+    <DisableUnityPluginCopy Condition=" '$(DisableUnityPluginCopy)' == '' ">false</DisableUnityPluginCopy>
+  </PropertyGroup>
+  <Target Name="CopyToUnityPackage_Disabled" AfterTargets="Build" Condition=" '$(DisableUnityPluginCopy)' == 'true' ">
+    <Message Importance="high" Text="Skipping copy to Unity Plugins because DisableUnityPluginCopy=true" />
   </Target>
 
 </Project>

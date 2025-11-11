@@ -140,7 +140,7 @@ namespace ProtobufMSBuildForUnity.Protobuf.Editor
                 var psi = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"build \"{csproj}\" -c Release -p:ProtoRootDir=\"{protoRoot}\"",
+                    Arguments = $"build \"{csproj}\" -c Release -p:ProtoRootDir=\"{protoRoot}\" -p:DisableUnityPluginCopy=true",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
