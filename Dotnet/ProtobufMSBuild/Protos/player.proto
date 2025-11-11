@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+// 生成的 C# 命名空间
+option csharp_namespace = "TTT.Protobuf.Messages";
+
+message Player {
+  int32 id = 1;
+  string name = 2;
+}

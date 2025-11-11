@@ -1,0 +1,8 @@
+is_global = true
+build_property.RootNamespace = ProtobufMSBuild.Protobuf.Messages
+build_property.ProjectDir = C:\Users\Administrator\Desktop\TTT\Protobuf_MSBuild_For_Unity\Dotnet\ProtobufMSBuild\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.CsWinRTUseWindowsUIXamlProjections = false
+build_property.EffectiveAnalysisLevelStyle = 
+build_property.EnableCodeStyleSeverity = 

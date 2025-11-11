@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>ProtobufMSBuild.Protobuf.Messages</AssemblyName>
+    <RootNamespace>ProtobufMSBuild.Protobuf.Messages</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <!-- 复制运行时依赖（如 Google.Protobuf.dll）到输出目录 -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.25.2" />
+    <!-- 仅作生成器使用，不随库发布 -->
+    <PackageReference Include="Grpc.Tools" Version="2.63.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 只生成消息类型，不生成 gRPC 服务 -->
+    <Protobuf Include="Protos\*.proto" GrpcServices="None" />
+  </ItemGroup>
+
+  <!-- 构建后复制所有输出（含依赖）到 UPM 包 Runtime/Plugins -->
+  <PropertyGroup>
+    <UnityPackagePluginsDir>$(MSBuildProjectDirectory)\..\..\Runtime\Plugins</UnityPackagePluginsDir>
+  </PropertyGroup>
+
+  <Target Name="CopyToUnityPackage" AfterTargets="Build">
+    <ItemGroup>
+      <!-- 复制输出文件，但排除 BCL（System.*）避免与 Unity 自带程序集冲突 -->
+      <AssembliesToCopy Include="$(OutputPath)**\*.dll;$(OutputPath)**\*.xml;$(OutputPath)**\*.pdb" />
+      <AssembliesToCopy Remove="$(OutputPath)**\System.*.dll" />
+      <AssembliesToCopy Remove="$(OutputPath)**\System.*.xml" />
+      <AssembliesToCopy Remove="$(OutputPath)**\System.*.pdb" />
+      <AssembliesToCopy Remove="$(OutputPath)**\netstandard.dll" />
+      <AssembliesToCopy Remove="$(OutputPath)**\netstandard.xml" />
+      <AssembliesToCopy Remove="$(OutputPath)**\netstandard.pdb" />
+    </ItemGroup>
+    <Message Importance="high" Text="Copying built assemblies to $(UnityPackagePluginsDir)" />
+    <Copy SourceFiles="@(AssembliesToCopy)" DestinationFolder="$(UnityPackagePluginsDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

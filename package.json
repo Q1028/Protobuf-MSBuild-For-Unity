@@ -1,0 +1,20 @@
+{
+  "name": "com.wjq.protobuf-msbuild-for-unity",
+  "version": "0.1.0",
+  "displayName": "Protobuf-MSBuild-For-Unity",
+  "description": "使用 UPM 嵌套 MSBuild .NET 工程自动生成并发布 Google.Protobuf 的消息 DLL，适配 Unity。",
+  "unity": "2021.3",
+  "author": {
+    "name": "wjq",
+    "email": "wujiaqing2020w@163.com",
+    "url": "https://github.com/Q1028/Protobuf-MSBuild-For-Unity.git"
+  },
+  "keywords": ["protobuf", "msbuild", ".net", "unity"],
+  "samples": [
+    {
+      "displayName": "Simple Usage",
+      "description": "示例脚本演示如何序列化/反序列化",
+      "path": "Samples~/SimpleUsage"
+    }
+  ]
+}
