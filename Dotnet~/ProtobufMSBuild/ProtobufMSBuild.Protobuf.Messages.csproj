@@ -27,14 +27,17 @@
 
   <Target Name="CopyToUnityPackage" AfterTargets="Build">
     <ItemGroup>
-      <!-- 复制输出文件，但排除 BCL（System.*）避免与 Unity 自带程序集冲突 -->
+      <!-- 复制输出文件，但排除 BCL（例如 netstandard）避免与 Unity 自带程序集冲突。
+           注意：不要整体排除 System.*，否则会丢失 Google.Protobuf 依赖的
+           System.Runtime.CompilerServices.Unsafe/System.Memory 等运行时库。 -->
       <AssembliesToCopy Include="$(OutputPath)**\*.dll;$(OutputPath)**\*.xml;$(OutputPath)**\*.pdb" />
-      <AssembliesToCopy Remove="$(OutputPath)**\System.*.dll" />
-      <AssembliesToCopy Remove="$(OutputPath)**\System.*.xml" />
-      <AssembliesToCopy Remove="$(OutputPath)**\System.*.pdb" />
       <AssembliesToCopy Remove="$(OutputPath)**\netstandard.dll" />
       <AssembliesToCopy Remove="$(OutputPath)**\netstandard.xml" />
       <AssembliesToCopy Remove="$(OutputPath)**\netstandard.pdb" />
+      <!-- 如需更严格控制，可在此按需移除特定 System.*，但务必保留 Unsafe/Memory。-->
+      <!-- 明确确保复制以下运行时依赖（若存在）： -->
+      <AssembliesToCopy Include="$(OutputPath)**\System.Runtime.CompilerServices.Unsafe*.dll" />
+      <AssembliesToCopy Include="$(OutputPath)**\System.Memory*.dll" />
     </ItemGroup>
     <Message Importance="high" Text="Copying built assemblies to $(UnityPackagePluginsDir)" />
     <Copy SourceFiles="@(AssembliesToCopy)" DestinationFolder="$(UnityPackagePluginsDir)" SkipUnchangedFiles="true" />
