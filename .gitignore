@@ -1,0 +1,9 @@
+# Unity UPM package root
+# Keep development-only Dotnet~ folder out of version control/build artifacts
+Dotnet~/**/bin/
+Dotnet~/**/obj/
+Dotnet~/**/.idea/
+
+# OS junk
+Thumbs.db
+.DS_Store
